@@ -18,50 +18,45 @@ def calculate_average_sound_energy(sample_rate, sound_data):
 
 # currently only works for mono wav files
 # TODO make it work for both mono and stereo audio 
-def calculate_instaneous_sound_energy(sound_data): 
-    acc = 0 
-    for i in range(0, 512): 
-        acc += sound_data[i]**2 
-    return acc 
+def calculate_instaneous_sound_energies(max_len, sound_data): 
+    ans = []
+    for i in range(0, max_len, 512): 
+        acc = 0 
+        for j in range(i, i + 512): 
+            acc += sound_data[j]
+        ans.append(acc)
+    return ans 
+
+def calculate_variance(buffer, mean): 
+    deviations = [(x - mean)**2 for x in buffer]
+    variance = sum(deviations)/len(buffer)
+    return variance
+
+def calculate_coefficient_of_sensibility(variance): 
+    return -0.0025714*variance + 1.5142857
 
 def calculate_beat_diff(sample_rate, sound_data): 
-
-    # calculate deque max len 
-    max_len = math.floor(sample_rate/512)
-
-    circular_buffer = collections.deque(maxlen=max_len)
-    coeffient_of_sensibility = 1.3 
+    max_len = math.floor(sample_rate/512) * 512
+    sound_data_len = math.floor(len(sound_data)/max_len) * max_len
     beat_count = 0 
     beat = []
-    local_average_sound_energy = 0
-    #initialize buffer 
-    for i in range(0, max_len): 
-        circular_buffer.append(sound_data[i]**2)
 
-    #TODO Need to redo this code to correctly calcute the diff
-    for i in range(0, len(sound_data) - 512, 512): 
-        local_average_sound_energy = calculate_average_sound_energy(sample_rate, circular_buffer)
-        instaneous_energy = calculate_instaneous_sound_energy(circular_buffer)
-        print(local_average_sound_energy, instaneous_energy)
-        if instaneous_energy > coeffient_of_sensibility*local_average_sound_energy:
-            beat_count += 1
-            beat.append(instaneous_energy)
-        for j in range(512): 
-            circular_buffer.popleft
-            circular_buffer.append(sound_data[i + j])
-        print(i)
-    final_buffer = list(circular_buffer)
-    #for i in range(0, len(circular_buffer), 512): 
-    #    instaneous_energy = calculate_instaneous_sound_energy(final_buffer[i:])
-    #    if instaneous_energy > coeffient_of_sensibility*local_average_sound_energy:
-    #        beat_count += 1
-    #        beat.append(instaneous_energy)
+    for i in range(0, sound_data_len, max_len): 
+        buffer = [0] * max_len
+        variance_buffer = [0] * max_len
+        for j in range(i, i + max_len): 
+            buffer[j - i] = sound_data[j]**2
+            variance_buffer[j - i] = sound_data[j]
+        average_energy = calculate_average_sound_energy(max_len, buffer)
+        instaneous_sound_energy = calculate_instaneous_sound_energies(max_len, buffer)
+        variance = calculate_variance(variance_buffer, average_energy)
+        print(variance)
+        coeffient_of_sensibility = calculate_coefficient_of_sensibility(variance)
+        for ise in instaneous_sound_energy: 
+            if ise > (average_energy * coeffient_of_sensibility): 
+                beat_count += 1
+                beat.append(ise)
     return beat_count
-    
-    
 
-
-        
 #only three seconds of data
-#print(calculate_beat_diff(sample_rate, normalized_data))
-print(sample_rate)
+print(calculate_beat_diff(sample_rate, normalized_data))
