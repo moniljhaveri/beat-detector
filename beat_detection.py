@@ -1,7 +1,7 @@
 from scipy.io import wavfile 
-import collections
-import itertools
 import math
+import numpy as np
+from sympy import ifft
 
 # will need to come back paramaterize this 
 # this is stored as mono 
@@ -58,5 +58,42 @@ def calculate_beat_diff(sample_rate, sound_data):
                 beat.append(ise)
     return beat_count
 
+# cooley-tukey algorithm 
+def fft(x): 
+    N = len(x)
+    if N == 1: 
+        return x 
+    x_even = fft(x[::2])
+    x_odd = fft(x[1::2])
+
+    factor = np.exp(-2j*np.pi*np.arange(N)/N)
+    X = np.concatenate([x_even + factor[:int(N/2)]*x_odd,x_even + factor[int(N/2):]*x_odd])
+    return X
+def conjate(x): 
+    res = [complex(i.real, -1*i.imag) for i in x if isinstance(i, complex)]
+    return res
+    
+
+def ifft(samples, inverse_bool = False): 
+    N = len(samples)
+    inverse_samples = conjate(samples)
+    inverse_fft_data = fft(inverse_samples)
+    res = conjate(inverse_fft_data)
+    return [i/N for i in res]
+
+def frequency_selected_sound_energy(x): 
+    for i in range(0, len(x)-512, 512): 
+        buffer = x[i:(i+512)]
+        fft_buffer = fft(buffer)
+        fft_power_buffer = [(i.real**2 + i.imag**2)**0.5 for i in fft_buffer]
+        print(fft_power_buffer)
+
+
+
+frequency_selected_sound_energy(data)
+#print(np.allclose(fft(test_data), np.fft.fft(test_data)))
+#print(len(np.fft.irfft(fft(test_data))))
+
+
 #only three seconds of data
-print(calculate_beat_diff(sample_rate, normalized_data))
+#print(calculate_beat_diff(sample_rate, normalized_data))
