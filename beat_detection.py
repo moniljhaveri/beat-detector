@@ -9,6 +9,40 @@ sample_rate, data = wavfile.read('CantinaBand60.wav')
 max_data = max(data)
 normalized_data = [i/max_data for i in data]
 
+class QueueNode: 
+    def __init__(self, data) -> None:
+        self.data = data
+        self.prev = None 
+        self.next = None 
+
+class SoundQueue: 
+    def __init__(self, max_size_of_queue) -> None:
+        self.sum = 0 
+        self.max_size_of_queue = max_size_of_queue
+        self.head_ptr = QueueNode(0)
+        self.tail_ptr = QueueNode(0)
+
+        self.head_ptr.next = self.tail_ptr
+        self.tail_ptr.prev = self.head_ptr
+
+        self.tail_ptr.next = None 
+        self.head_ptr.prev = None 
+    
+    def add_to_beginning(self, data): 
+        self.sum += data
+        node = QueueNode(data)
+        tmp__next  = self.head_ptr.next
+        node.prev = self.head_ptr
+        self.head_ptr.next = node 
+        node.next = tmp__next
+    
+    
+
+class SoundQueueArray: 
+    def __init__(self, size_of_arr) -> None:
+        pass
+    
+
 # this is multiplied 
 def calculate_average_sound_energy(sample_rate, sound_data): 
     coefficient = 512/sample_rate 
@@ -81,19 +115,29 @@ def ifft(samples, inverse_bool = False):
     res = conjate(inverse_fft_data)
     return [i/N for i in res]
 
+def compute_es(arr): 
+    # need to test 
+    c = 32/512 
+    ans = [0]*16
+    for i in range(16): 
+        for j in range(i*32, (i+1)*32): 
+            ans[i] +=  arr[j]
+        ans[i] *= c
+    return ans 
+
 def frequency_selected_sound_energy(x): 
     for i in range(0, len(x)-512, 512): 
         buffer = x[i:(i+512)]
         fft_buffer = fft(buffer)
         fft_power_buffer = [(i.real**2 + i.imag**2)**0.5 for i in fft_buffer]
-        print(fft_power_buffer)
-
-
+        es_buffer = compute_es(fft_power_buffer)
 
 frequency_selected_sound_energy(data)
 #print(np.allclose(fft(test_data), np.fft.fft(test_data)))
 #print(len(np.fft.irfft(fft(test_data))))
 
+test = [1]*512 
+print(compute_es(test))
 
 #only three seconds of data
 #print(calculate_beat_diff(sample_rate, normalized_data))
